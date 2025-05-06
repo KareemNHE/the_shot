@@ -1,0 +1,2 @@
+C:/Users/adren/StudioProjects/the_shot/android/app/.cxx/Debug/2r5y2d1g/x86/CMakeFiles/edit_cache.dir
+C:/Users/adren/StudioProjects/the_shot/android/app/.cxx/Debug/2r5y2d1g/x86/CMakeFiles/rebuild_cache.dir
