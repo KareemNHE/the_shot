@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:the_shot2/models/categories.dart';
 import 'package:the_shot2/models/post_model.dart';
-import 'package:the_shot2/viewmodels/post_viewmodel.dart';
+import 'package:the_shot2/viewmodels/post_actions_viewmodel.dart';
 
 class EditPostScreen extends StatefulWidget {
   final PostModel post;
@@ -63,8 +63,8 @@ class _EditPostScreenState extends State<EditPostScreen> {
         actions: [
           TextButton(
             onPressed: () async {
-              final viewModel = Provider.of<PostViewModel>(context, listen: false);
-              await viewModel.editPost(
+              final postActionsViewModel = Provider.of<PostActionsViewModel>(context, listen: false);
+              await postActionsViewModel.editPost(
                 postId: widget.post.id,
                 userId: widget.post.userId,
                 caption: _captionController.text,
@@ -72,11 +72,11 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 thumbnail: widget.post.type == 'video' ? _customThumbnail : null,
               );
 
-              if (viewModel.errorMessage != null) {
+              if (postActionsViewModel.errorMessage != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(viewModel.errorMessage!)),
+                  SnackBar(content: Text(postActionsViewModel.errorMessage!)),
                 );
-                viewModel.clearError();
+                postActionsViewModel.clearError();
               } else {
                 Navigator.pop(context, true);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -93,13 +93,13 @@ class _EditPostScreenState extends State<EditPostScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Consumer<PostViewModel>(
+        child: Consumer<PostActionsViewModel>(
           builder: (context, viewModel, child) {
             return SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.post.type == 'video' && _thumbnailPath != null)
+                  if (widget.post.type == 'video' && _thumbnailPath != null && _thumbnailPath!.isNotEmpty)
                     Container(
                       width: double.infinity,
                       height: 200,
@@ -109,10 +109,9 @@ class _EditPostScreenState extends State<EditPostScreen> {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.file(
-                              _customThumbnail != null
-                                  ? File(_thumbnailPath!)
-                                  : File(_thumbnailPath!),
+                            _customThumbnail != null
+                                ? Image.file(
+                              File(_thumbnailPath!),
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) => Image.network(
                                 widget.post.thumbnailUrl,
@@ -122,6 +121,15 @@ class _EditPostScreenState extends State<EditPostScreen> {
                                   size: 80,
                                   color: Colors.grey,
                                 ),
+                              ),
+                            )
+                                : Image.network(
+                              widget.post.thumbnailUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => const Icon(
+                                Icons.broken_image,
+                                size: 80,
+                                color: Colors.grey,
                               ),
                             ),
                             Center(

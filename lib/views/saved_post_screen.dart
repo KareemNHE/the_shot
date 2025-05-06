@@ -1,8 +1,8 @@
+//views/saved_post_screen.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:the_shot2/models/post_model.dart';
-import 'package:the_shot2/viewmodels/post_viewmodel.dart';
+import 'package:the_shot2/viewmodels/saved_post_viewmodel.dart';
 import 'package:the_shot2/views/post_detail_screen.dart';
 import 'package:the_shot2/views/widgets/video_post_card.dart';
 
@@ -20,7 +20,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
     Future.microtask(() {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId != null) {
-        Provider.of<PostViewModel>(context, listen: false).fetchSavedPosts(userId);
+        Provider.of<SavedPostsViewModel>(context, listen: false).fetchSavedPosts(userId);
       }
     });
   }
@@ -38,7 +38,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
       appBar: AppBar(
         title: const Text('Saved Posts'),
       ),
-      body: Consumer<PostViewModel>(
+      body: Consumer<SavedPostsViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -87,8 +87,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                         ? Image.network(
                       post.imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.broken_image),
+                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
                     )
                         : const SizedBox(
                       height: 200,

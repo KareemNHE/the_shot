@@ -2,7 +2,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:the_shot2/viewmodels/post_viewmodel.dart';
+import 'package:the_shot2/viewmodels/archived_post_viewmodel.dart';
 import 'package:the_shot2/views/post_detail_screen.dart';
 import 'package:the_shot2/views/widgets/video_post_card.dart';
 
@@ -20,7 +20,7 @@ class _ArchivedPostsScreenState extends State<ArchivedPostsScreen> {
     Future.microtask(() {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId != null) {
-        Provider.of<PostViewModel>(context, listen: false).fetchArchivedPosts(userId);
+        Provider.of<ArchivedPostsViewModel>(context, listen: false).fetchArchivedPosts(userId);
       }
     });
   }
@@ -38,7 +38,7 @@ class _ArchivedPostsScreenState extends State<ArchivedPostsScreen> {
       appBar: AppBar(
         title: const Text('Archived Posts'),
       ),
-      body: Consumer<PostViewModel>(
+      body: Consumer<ArchivedPostsViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -88,8 +88,7 @@ class _ArchivedPostsScreenState extends State<ArchivedPostsScreen> {
                         ? Image.network(
                       post.imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.broken_image),
+                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
                     )
                         : const SizedBox(
                       height: 200,

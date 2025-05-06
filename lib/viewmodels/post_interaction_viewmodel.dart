@@ -5,81 +5,94 @@ import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
 
 class PostInteractionViewModel extends ChangeNotifier {
-  final String postId;
   bool isLiked = false;
   int likeCount = 0;
   int commentCount = 0;
+  String? _errorMessage;
 
-  final String postOwnerId;
+  String? get errorMessage => _errorMessage;
 
-  PostInteractionViewModel({
-    required this.postId,
-    required this.postOwnerId,
-  });
-
-  Future<void> init() async {
-    await _fetchLikes();
-    await _fetchComments();
-  }
-
-  Future<void> _fetchLikes() async {
+  Future<void> fetchInteractionData(String postId) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final likeDoc = await FirebaseFirestore.instance
-        .collection('posts')
-        .doc(postId)
-        .collection('likes')
-        .doc(uid)
-        .get();
+    try {
+      final likeDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(postId.split('/')[0])
+          .collection('posts')
+          .doc(postId.split('/')[2])
+          .collection('likes')
+          .doc(uid)
+          .get();
 
-    isLiked = likeDoc.exists;
+      isLiked = likeDoc.exists;
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('posts')
-        .doc(postId)
-        .collection('likes')
-        .get();
+      final likeSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(postId.split('/')[0])
+          .collection('posts')
+          .doc(postId.split('/')[2])
+          .collection('likes')
+          .get();
 
-    likeCount = snapshot.docs.length;
-    notifyListeners();
+      likeCount = likeSnapshot.docs.length;
+
+      final commentSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(postId.split('/')[0])
+          .collection('posts')
+          .doc(postId.split('/')[2])
+          .collection('comments')
+          .get();
+
+      commentCount = commentSnapshot.docs.length;
+
+      _errorMessage = null;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = 'Error fetching interaction data: $e';
+      print('Error fetching interaction data: $e');
+    }
   }
 
-  Future<void> _fetchComments() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('posts')
-        .doc(postId)
-        .collection('comments')
-        .get();
-
-    commentCount = snapshot.docs.length;
-    notifyListeners();
-  }
-
-  Future<void> toggleLike() async {
+  Future<void> toggleLike(String postId, String postOwnerId) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
     final ref = FirebaseFirestore.instance
+        .collection('users')
+        .doc(postOwnerId)
         .collection('posts')
         .doc(postId)
         .collection('likes')
         .doc(uid);
 
-    if (isLiked) {
-      await NotificationService.createNotification(
+    try {
+      if (isLiked) {
+        await ref.delete();
+        likeCount--;
+      } else {
+        await ref.set({'timestamp': FieldValue.serverTimestamp()});
+        await NotificationService.createNotification(
           recipientId: postOwnerId,
           type: 'like',
           relatedPostId: postId,
-      );
-      await ref.delete();
-      likeCount--;
-    } else {
-      await ref.set({'timestamp': FieldValue.serverTimestamp()});
-      likeCount++;
-    }
+        );
+        likeCount++;
+      }
 
-    isLiked = !isLiked;
+      isLiked = !isLiked;
+      _errorMessage = null;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = 'Error toggling like: $e';
+      print('Error toggling like: $e');
+    }
+  }
+
+  void clearError() {
+    _errorMessage = null;
     notifyListeners();
   }
 }

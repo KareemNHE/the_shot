@@ -2,7 +2,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/comment_model.dart';
 import '../models/post_model.dart';
 import '../viewmodels/comment_interaction_viewmodel.dart';
 import '../viewmodels/comment_viewmodel.dart';

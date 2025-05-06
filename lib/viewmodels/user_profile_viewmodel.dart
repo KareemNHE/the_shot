@@ -12,9 +12,11 @@ class UserProfileViewModel extends ChangeNotifier {
 
   SearchUser? _user;
   List<PostModel> _posts = [];
+  String? _errorMessage;
 
   SearchUser? get user => _user;
   List<PostModel> get posts => _posts;
+  String? get errorMessage => _errorMessage;
 
   bool _isFollowing = false;
   bool get isFollowing => _isFollowing;
@@ -74,6 +76,7 @@ class UserProfileViewModel extends ChangeNotifier {
 
   Future<void> fetchUserProfile(String userId) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -92,14 +95,22 @@ class UserProfileViewModel extends ChangeNotifier {
         final data = userDoc.data()!;
         _user = SearchUser(
           id: userDoc.id,
-          username: data['username'],
-          first_name: data['first_name'],
-          last_name: data['last_name'],
+          username: data['username'] ?? 'Unknown',
+          first_name: data['first_name'] ?? '',
+          last_name: data['last_name'] ?? '',
           profile_picture: data['profile_picture'] ?? 'assets/default_profile.png',
           bio: data['bio'] ?? '',
         );
+      } else {
+        _errorMessage = 'User not found';
+        _user = null;
+        _posts = [];
+        _isLoading = false;
+        notifyListeners();
+        return;
       }
 
+      // Fetch followers and following counts
       final followersSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -115,6 +126,7 @@ class UserProfileViewModel extends ChangeNotifier {
       _followersCount = followersSnapshot.size;
       _followingCount = followingSnapshot.size;
 
+      // Check if current user is following
       final currentUserId = FirebaseAuth.instance.currentUser?.uid;
       if (currentUserId != null) {
         final followDoc = await FirebaseFirestore.instance
@@ -128,22 +140,45 @@ class UserProfileViewModel extends ChangeNotifier {
       }
 
       // Fetch user's posts
-      final postsSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('posts')
-          .where('isArchived', isEqualTo: false)
-          .orderBy('timestamp', descending: true)
-          .get();
+      QuerySnapshot postsSnapshot;
+      try {
+        postsSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('posts')
+            .where('isArchived', whereIn: [false, null])
+            .orderBy('timestamp', descending: true)
+            .get();
+        print('Fetched ${postsSnapshot.docs.length} posts for user $userId with isArchived=false or null');
+      } catch (e) {
+        print('Error with isArchived query: $e');
+        // Fallback query without isArchived filter
+        postsSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('posts')
+            .orderBy('timestamp', descending: true)
+            .get();
+        print('Fallback query fetched ${postsSnapshot.docs.length} posts for user $userId');
+      }
 
       _posts = postsSnapshot.docs.map((doc) {
-        return PostModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
-      }).toList();
+        final data = doc.data() as Map<String, dynamic>;
+        final post = PostModel.fromFirestore(data, doc.id);
+        print('Post ${post.id}: isArchived=${data['isArchived']}, type=${post.type}, videoUrl=${post.videoUrl}, imageUrl=${post.imageUrl}');
+        return post;
+      }).where((post) => !post.isArchived).toList();
     } catch (e) {
+      _errorMessage = 'Error fetching user profile: $e';
       print('Error fetching user profile: $e');
     }
 
     _isLoading = false;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _errorMessage = null;
     notifyListeners();
   }
 }

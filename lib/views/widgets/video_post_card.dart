@@ -1,14 +1,11 @@
 //views/widgets/video_post_card.dart
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:provider/provider.dart';
 import 'package:the_shot2/models/post_model.dart';
-import 'package:the_shot2/viewmodels/post_viewmodel.dart';
-import 'package:the_shot2/views/edit_post_screen.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'custom_video_player.dart';
 
-class VideoPostCard extends StatelessWidget {
+class VideoPostCard extends StatefulWidget {
   final PostModel post;
   final bool isThumbnailOnly;
   final bool isGridView;
@@ -22,368 +19,85 @@ class VideoPostCard extends StatelessWidget {
     this.showMenuIcon = true,
   }) : super(key: key);
 
-  void _showPostMenu(BuildContext context, bool isOwner) {
-    final currentRoute = ModalRoute.of(context)?.settings.name;
-    final isArchivedScreen = currentRoute == '/archived_posts';
-    final isSavedScreen = currentRoute == '/saved_posts';
-    final viewModel = Provider.of<PostViewModel>(context, listen: false);
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  @override
+  _VideoPostCardState createState() => _VideoPostCardState();
+}
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.5,
-        minChildSize: 0.3,
-        maxChildSize: 0.6,
-        expand: false,
-        builder: (context, scrollController) {
-          return SingleChildScrollView(
-            controller: scrollController,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: isOwner && !isSavedScreen
-                    ? isArchivedScreen
-                    ? [
-                  ListTile(
-                    leading: const Icon(Icons.delete, color: Colors.red),
-                    title: const Text('Delete Post'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Delete Post'),
-                          content: const Text('Are you sure you want to delete this post?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) {
-                        await viewModel.deletePost(
-                          postId: post.id,
-                          userId: post.userId,
-                        );
-                        if (viewModel.errorMessage != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(viewModel.errorMessage!)),
-                          );
-                          viewModel.clearError();
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Post deleted')),
-                          );
-                          await viewModel.fetchArchivedPosts(post.userId);
-                        }
-                      }
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.unarchive, color: Color(0xFF8A56AC)),
-                    title: const Text('Show back on profile'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await viewModel.unarchivePost(
-                        postId: post.id,
-                        userId: post.userId,
-                      );
-                      if (viewModel.errorMessage != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(viewModel.errorMessage!)),
-                        );
-                        viewModel.clearError();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Post unarchived')),
-                        );
-                        await viewModel.fetchArchivedPosts(post.userId);
-                      }
-                    },
-                  ),
-                ]
-                    : [
-                  ListTile(
-                    leading: const Icon(Icons.archive, color: Color(0xFF8A56AC)),
-                    title: Text(post.isArchived ? 'Unarchive Post' : 'Archive Post'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await viewModel.archivePost(
-                        postId: post.id,
-                        userId: post.userId,
-                        archive: !post.isArchived,
-                      );
-                      if (viewModel.errorMessage != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(viewModel.errorMessage!)),
-                        );
-                        viewModel.clearError();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(post.isArchived ? 'Post unarchived' : 'Post archived'),
-                          ),
-                        );
-                        if (!post.isArchived) {
-                          await viewModel.fetchUserPosts(post.userId);
-                        }
-                      }
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.delete, color: Colors.red),
-                    title: const Text('Delete Post'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Delete Post'),
-                          content: const Text('Are you sure you want to delete this post?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) {
-                        await viewModel.deletePost(
-                          postId: post.id,
-                          userId: post.userId,
-                        );
-                        if (viewModel.errorMessage != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(viewModel.errorMessage!)),
-                          );
-                          viewModel.clearError();
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Post deleted')),
-                          );
-                          await viewModel.fetchUserPosts(post.userId);
-                        }
-                      }
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.edit, color: Color(0xFF8A56AC)),
-                    title: const Text('Edit Post'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => EditPostScreen(post: post),
-                        ),
-                      );
-                      if (result == true) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Post updated')),
-                        );
-                        await viewModel.fetchUserPosts(post.userId);
-                      }
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.comment, color: Color(0xFF8A56AC)),
-                    title: Text(post.commentsDisabled ? 'Enable Comments' : 'Disable Comments'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await viewModel.disableComments(
-                        postId: post.id,
-                        userId: post.userId,
-                        disable: !post.commentsDisabled,
-                      );
-                      if (viewModel.errorMessage != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(viewModel.errorMessage!)),
-                        );
-                        viewModel.clearError();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(post.commentsDisabled ? 'Comments enabled' : 'Comments disabled'),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                ]
-                    : [
-                  ListTile(
-                    leading: const Icon(Icons.thumb_up, color: Color(0xFF8A56AC)),
-                    title: const Text('Interested'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Feature coming soon!')),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.thumb_down, color: Color(0xFF8A56AC)),
-                    title: const Text('Not Interested'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Feature coming soon!')),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.report, color: Colors.red),
-                    title: const Text('Report'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Feature coming soon!')),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.bookmark, color: Color(0xFF8A56AC)),
-                    title: Text(isSavedScreen ? 'Unsave Post' : 'Save Post'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      if (isSavedScreen) {
-                        await viewModel.unsavePost(
-                          postId: post.id,
-                          userId: currentUserId!,
-                        );
-                        if (viewModel.errorMessage != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(viewModel.errorMessage!)),
-                          );
-                          viewModel.clearError();
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Post unsaved')),
-                          );
-                          await viewModel.fetchSavedPosts(currentUserId);
-                        }
-                      } else {
-                        await viewModel.savePost(
-                          postId: post.id,
-                          postOwnerId: post.userId,
-                          userId: currentUserId!,
-                        );
-                        if (viewModel.errorMessage != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(viewModel.errorMessage!)),
-                          );
-                          viewModel.clearError();
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Post saved')),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
+class _VideoPostCardState extends State<VideoPostCard> {
+  bool _isVisible = false;
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    final isOwner = post.userId == currentUserId;
-
-    return isGridView
-        ? Stack(
-      fit: StackFit.expand,
-      children: [
-        CachedNetworkImage(
-          imageUrl: post.thumbnailUrl.isNotEmpty ? post.thumbnailUrl : post.imageUrl,
-          fit: BoxFit.cover,
-          placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-          errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 50),
-          cacheManager: DefaultCacheManager(),
-        ),
-        Center(
-          child: Icon(
-            Icons.play_circle_filled,
-            size: 40,
-            color: Colors.white.withOpacity(0.8),
+    return VisibilityDetector(
+      key: Key(widget.post.id),
+      onVisibilityChanged: (info) {
+        if (info.visibleFraction > 0.5 && !_isVisible) {
+          if (mounted) {
+            setState(() {
+              _isVisible = true;
+              print('VideoPostCard: Visible, videoUrl=${widget.post.videoUrl}');
+            });
+          }
+        } else if (info.visibleFraction <= 0.5 && _isVisible) {
+          if (mounted) {
+            setState(() {
+              _isVisible = false;
+              print('VideoPostCard: Not visible, pausing video');
+            });
+          }
+        }
+      },
+      child: widget.isGridView
+          ? Stack(
+        fit: StackFit.expand,
+        children: [
+          CachedNetworkImage(
+            imageUrl: widget.post.thumbnailUrl.isNotEmpty ? widget.post.thumbnailUrl : widget.post.imageUrl,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+            errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 50),
+            cacheManager: DefaultCacheManager(),
           ),
-        ),
-        if (showMenuIcon)
-          Positioned(
-            top: 5,
-            right: 5,
-            child: IconButton(
-              icon: const Icon(Icons.more_vert, color: Colors.white),
-              onPressed: () => _showPostMenu(context, isOwner),
+          Center(
+            child: Icon(
+              Icons.play_circle_filled,
+              size: 40,
+              color: Colors.white.withOpacity(0.8),
             ),
           ),
-      ],
-    )
-        : Stack(
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (post.type == 'video' && post.videoUrl.isNotEmpty)
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: isThumbnailOnly && post.thumbnailUrl.isNotEmpty
-                    ? Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CachedNetworkImage(
-                      imageUrl: post.thumbnailUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                      errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 50),
-                      cacheManager: DefaultCacheManager(),
+        ],
+      )
+          : Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.post.type == 'video' && widget.post.videoUrl.isNotEmpty)
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: widget.isThumbnailOnly || !_isVisible
+                  ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: widget.post.thumbnailUrl.isNotEmpty ? widget.post.thumbnailUrl : widget.post.imageUrl,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                    errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 50),
+                    cacheManager: DefaultCacheManager(),
+                  ),
+                  Center(
+                    child: Icon(
+                      Icons.play_circle_filled,
+                      size: 60,
+                      color: Colors.white.withOpacity(0.8),
                     ),
-                    Center(
-                      child: Icon(
-                        Icons.play_circle_filled,
-                        size: 60,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                    ),
-                  ],
-                )
-                    : CustomVideoPlayer(videoUrl: post.videoUrl),
-              ),
-          ],
-        ),
-        if (showMenuIcon)
-          Positioned(
-            top: 5,
-            right: 5,
-            child: IconButton(
-              icon: const Icon(Icons.more_vert, color: Colors.white),
-              onPressed: () => _showPostMenu(context, isOwner),
+                  ),
+                ],
+              )
+                  : CustomVideoPlayer(videoUrl: widget.post.videoUrl),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

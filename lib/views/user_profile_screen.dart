@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:the_shot2/services/settings_service.dart';
 import 'package:the_shot2/viewmodels/settings_viewmodel.dart';
+import 'package:the_shot2/viewmodels/user_profile_viewmodel.dart';
 import 'package:the_shot2/views/post_detail_screen.dart';
 import 'package:the_shot2/views/user_list_screen.dart';
 import 'package:the_shot2/views/widgets/video_post_card.dart';
-import '../viewmodels/user_profile_viewmodel.dart';
 
 class UserProfileScreen extends StatelessWidget {
   final String userId;
@@ -24,10 +24,33 @@ class UserProfileScreen extends StatelessWidget {
       ],
       child: Consumer2<UserProfileViewModel, SettingsViewModel>(
         builder: (context, profileViewModel, settingsViewModel, child) {
-          print('UserProfileScreen: isLoading=${profileViewModel.isLoading}, posts=${profileViewModel.posts.length}');
+          print('UserProfileScreen: isLoading=${profileViewModel.isLoading}, posts=${profileViewModel.posts.length}, error=${profileViewModel.errorMessage}');
           if (profileViewModel.isLoading || settingsViewModel.isLoading) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          if (profileViewModel.errorMessage != null) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Profile')),
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${profileViewModel.errorMessage!}\nPosts fetched: ${profileViewModel.posts.length}',
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () => profileViewModel.fetchUserProfile(userId),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
             );
           }
 
@@ -43,9 +66,16 @@ class UserProfileScreen extends StatelessWidget {
             );
           }
 
+          if (user == null) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Profile')),
+              body: const Center(child: Text('User not found.')),
+            );
+          }
+
           return Scaffold(
             appBar: AppBar(
-              title: Text(user?.username ?? 'User'),
+              title: Text(user.username),
               actions: currentUserId != userId
                   ? [
                 IconButton(
@@ -53,8 +83,9 @@ class UserProfileScreen extends StatelessWidget {
                   onPressed: () async {
                     await settingsViewModel.unblockUser(userId);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Unblocked @${user?.username}')),
+                      SnackBar(content: Text('Blocked @${user.username}')),
                     );
+                    Navigator.pop(context);
                   },
                 ),
               ]
@@ -71,7 +102,7 @@ class UserProfileScreen extends StatelessWidget {
                     const SizedBox(height: 20),
                     CircleAvatar(
                       radius: 40,
-                      backgroundImage: NetworkImage(user!.profile_picture),
+                      backgroundImage: NetworkImage(user.profile_picture),
                     ),
                     const SizedBox(height: 10),
                     Text(

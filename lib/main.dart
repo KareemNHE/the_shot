@@ -3,6 +3,10 @@ import 'package:the_shot2/services/news_service.dart';
 import 'package:the_shot2/services/settings_service.dart';
 import 'package:the_shot2/services/sport_services/football_service.dart';
 import 'package:the_shot2/viewmodels/news_viewmodel.dart';
+import 'package:the_shot2/viewmodels/post_actions_viewmodel.dart';
+import 'package:the_shot2/viewmodels/post_detail_viewmodel.dart';
+import 'package:the_shot2/viewmodels/post_interaction_viewmodel.dart';
+import 'package:the_shot2/viewmodels/saved_post_viewmodel.dart';
 import 'package:the_shot2/viewmodels/settings_viewmodel.dart';
 import 'package:the_shot2/views/archived_post_screen.dart';
 import 'package:the_shot2/views/edit_profile_screen.dart';
@@ -62,6 +66,10 @@ class TheShot extends StatelessWidget {
         Provider<NewsService>(create: (_) => NewsService()),
         Provider<FootballService>(create: (_) => FootballService()),
         ChangeNotifierProvider(create: (context) => NewsViewModel(newsService: context.read<NewsService>()),),
+        ChangeNotifierProvider(create: (_) => PostInteractionViewModel()),
+        ChangeNotifierProvider(create: (_) => PostDetailViewModel()),
+        ChangeNotifierProvider(create: (_) => SavedPostsViewModel()),
+        ChangeNotifierProvider(create: (_) => PostActionsViewModel()),
       ],
       child: Consumer<SettingsViewModel>(
         builder: (context, settingsViewModel, child) {
