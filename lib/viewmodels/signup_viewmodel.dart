@@ -1,5 +1,4 @@
 // viewmodels/signup_viewmodel.dart
-
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,7 +11,7 @@ class SignUpViewModel {
 
   // Check if username is unique
   Future<bool> isUsernameAvailable(String username) async {
-    var result = await FirebaseFirestore.instance
+    var result = await _firestore
         .collection('users')
         .where('username', isEqualTo: username)
         .get();
@@ -40,6 +39,18 @@ class SignUpViewModel {
     }
   }
 
+  // Send email verification
+  Future<bool> sendEmailVerification(User user) async {
+    try {
+      await user.sendEmailVerification();
+      print('Verification email sent to ${user.email}');
+      return true;
+    } catch (e) {
+      print('Error sending verification email: $e');
+      return false;
+    }
+  }
+
   // Sign-up user
   Future<bool> signUpUser({
     required String firstName,
@@ -50,18 +61,28 @@ class SignUpViewModel {
     required String password,
     File? profileImage,
   }) async {
-    bool isAvailable = await isUsernameAvailable(username);
-    print('Username available: $isAvailable');
-
     if (!await isUsernameAvailable(username)) {
       print('Username already taken!');
       return false;
     }
 
-
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
-      String userId = userCredential.user!.uid;
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+          email: email, password: password);
+      User? user = userCredential.user;
+      if (user == null) {
+        print('User creation failed');
+        return false;
+      }
+
+      String userId = user.uid;
+
+      // Send email verification
+      bool verificationSent = await sendEmailVerification(user);
+      if (!verificationSent) {
+        print('Failed to send verification email');
+        return false;
+      }
 
       // Upload profile picture if provided
       String? profilePicUrl = await _uploadProfilePicture(profileImage, userId);
@@ -73,12 +94,28 @@ class SignUpViewModel {
         'username': username,
         'phone_num': phoneNum,
         'email': email,
-        'profile_picture': profilePicUrl ?? '', // Fallback to default
+        'profile_picture': profilePicUrl ?? '',
+        'isEmailVerified': false, // Initially false
       });
 
       return true;
     } catch (e) {
       print('Error: $e');
+      return false;
+    }
+  }
+
+  // Temporary function to manually verify email (for testing only)
+  Future<bool> manuallyVerifyEmail(String uid) async {
+    try {
+      // Update Firestore
+      await _firestore.collection('users').doc(uid).update({
+        'isEmailVerified': true,
+      });
+      print('Firestore updated: isEmailVerified set to true for UID: $uid');
+      return true;
+    } catch (e) {
+      print('Error manually verifying email: $e');
       return false;
     }
   }

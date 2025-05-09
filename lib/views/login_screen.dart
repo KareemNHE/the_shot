@@ -1,14 +1,10 @@
-
-//views/login_screen.dart
-
+// views/login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:the_shot2/views/bnb.dart';
-import 'package:the_shot2/components/LIbutton.dart';
-import 'package:the_shot2/components/textfield.dart';
-import 'package:the_shot2/viewmodels/login_viewmodel.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:the_shot2/viewmodels/login_viewmodel.dart';
 import 'package:the_shot2/views/signup_screen.dart';
-
+import 'package:the_shot2/views/email_verification_screen.dart';
 import 'forgot_pass_screen.dart';
 
 class Login extends StatefulWidget {
@@ -29,6 +25,11 @@ class _LoginState extends State<Login> {
     super.dispose();
   }
 
+  Future<bool> _isEmailVerifiedInFirestore(String uid) async {
+    var doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    return doc.exists && (doc.data()?['isEmailVerified'] ?? false);
+  }
+
   void _logIn() async {
     String input = _emailController.text.trim();
     String password = _passwordController.text.trim();
@@ -36,8 +37,16 @@ class _LoginState extends State<Login> {
     User? user = await _viewModel.loginUser(input, password);
 
     if (user != null) {
-      print("User successfully logged in with UID: ${user.uid}");
-      Navigator.pushReplacementNamed(context, '/home');
+      bool isVerified = await _isEmailVerifiedInFirestore(user.uid);
+      if (isVerified) {
+        print("User successfully logged in with UID: ${user.uid}");
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (ctx) => const EmailVerificationScreen()),
+        );
+      }
     } else {
       _showError('Invalid username/email or password');
     }
@@ -55,73 +64,152 @@ class _LoginState extends State<Login> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(height: 50),
-              Image.asset(
-                'assets/logo.png',
-                height: 300,
-                width: 300,
-              ),
-              MyTextField(
-                controller: _emailController,
-                hintText: 'Email',
-                obscuretext: false,
-              ),
-              SizedBox(height: 10),
-              MyTextField(
-                controller: _passwordController,
-                hintText: 'Password',
-                obscuretext: true,
-              ),
-
-              //Forgot Password
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: 50),
+                Image.asset(
+                  'assets/logo.png',
+                  height: 300,
+                  width: 300,
+                ),
+                // Email TextField
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  child: TextField(
+                    controller: _emailController,
+                    obscureText: false,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    decoration: InputDecoration(
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF8A56AC)),
+                      ),
+                      fillColor: Colors.grey.shade100,
+                      filled: true,
+                      hintText: 'Email',
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10),
+                // Password TextField
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  child: TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    decoration: InputDecoration(
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF8A56AC)),
+                      ),
+                      fillColor: Colors.grey.shade100,
+                      filled: true,
+                      hintText: 'Password',
+                    ),
+                  ),
+                ),
+                // Forgot Password
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => ForgotPassScreen()),
+                          );
+                        },
+                        child: Text(
+                          'Forgot password?',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 25.0),
+                // Login Button
+                GestureDetector(
+                  onTap: _logIn,
+                  child: Container(
+                    padding: EdgeInsets.all(20),
+                    margin: EdgeInsets.symmetric(horizontal: 25),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF8A56AC), // kPrimaryAccent
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Log in',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 50.0),
+                // Sign Up Link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Text(
+                      'Not a member? ',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Colors.grey[700],
+                      ),
+                    ),
                     TextButton(
                       onPressed: () {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (context) => ForgotPassScreen()));
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => Signup()),
+                        );
                       },
                       child: Text(
-                        'Forgot password?',
-                        style: TextStyle(
+                        'Sign up here',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: Color(0xFF8A56AC),
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey[700],
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              SizedBox(height: 25.0),
-              MyButton(
-                onTap: () => _logIn(),
-                child: const Text('Log in'),
-              ),
-              SizedBox(height: 50.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Not a member? ', style: TextStyle(color: Colors.grey[700])),
+                // Temporary Debug Button for Manual Verification
+                if (true) // Remove in production
                   TextButton(
-                    onPressed: () {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (context) => Signup()));
+                    onPressed: () async {
+                      User? user = FirebaseAuth.instance.currentUser;
+                      if (user != null) {
+                        bool success = await _viewModel.manuallyVerifyEmail(user.uid);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(success ? 'Email verified' : 'Failed to verify'),
+                          ),
+                        );
+                      }
                     },
                     child: Text(
-                      'Sign up here',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFAE3BE3),
+                      'Manually Verify Email (Debug)',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.blue,
                       ),
                     ),
                   ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

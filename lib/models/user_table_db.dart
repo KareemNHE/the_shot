@@ -14,6 +14,7 @@ class UserFields {
   static final String isPrivate = 'isPrivate';
   static final String themePreference = 'themePreference';
   static final String notificationSettings = 'notificationSettings';
+  static final String isEmailVerified = 'isEmailVerified';
 }
 
 class Users {
@@ -29,6 +30,8 @@ class Users {
   final bool isPrivate;
   final String themePreference;
   final Map<String, bool> notificationSettings;
+  final bool isEmailVerified;
+
 
   const Users({
     this.id,
@@ -48,6 +51,7 @@ class Users {
       'follows': true,
       'messages': true,
     },
+    this.isEmailVerified = false,
   });
 
   Users copy({
@@ -63,6 +67,7 @@ class Users {
     bool? isPrivate,
     String? themePreference,
     Map<String, bool>? notificationSettings,
+    bool? isEmailVerified,
   }) =>
       Users(
         id: id ?? this.id,
@@ -77,6 +82,7 @@ class Users {
         isPrivate: isPrivate ?? this.isPrivate,
         themePreference: themePreference ?? this.themePreference,
         notificationSettings: notificationSettings ?? this.notificationSettings,
+        isEmailVerified: isEmailVerified ?? this.isEmailVerified,
       );
 
   Map<String, Object?> tojson() => {
@@ -92,6 +98,7 @@ class Users {
     UserFields.isPrivate: isPrivate,
     UserFields.themePreference: themePreference,
     UserFields.notificationSettings: notificationSettings,
+    UserFields.isEmailVerified: isEmailVerified,
   };
 
   static Users fromJson(Map<String, dynamic> json) => Users(
@@ -112,6 +119,7 @@ class Users {
       'follows': true,
       'messages': true,
     },
+    isEmailVerified: json[UserFields.isEmailVerified] as bool? ?? false,
   );
 
   // Method to print user data
@@ -127,7 +135,7 @@ class Users {
     print('Is Private: $isPrivate');
     print('Theme Preference: $themePreference');
     print('Notification Settings: $notificationSettings');
+    print('Is Email Verified: $isEmailVerified');
   }
-
 }
 

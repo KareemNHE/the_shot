@@ -8,11 +8,8 @@ import 'package:the_shot2/viewmodels/post_detail_viewmodel.dart';
 import 'package:the_shot2/viewmodels/post_interaction_viewmodel.dart';
 import 'package:the_shot2/viewmodels/saved_post_viewmodel.dart';
 import 'package:the_shot2/viewmodels/settings_viewmodel.dart';
-import 'package:the_shot2/views/archived_post_screen.dart';
-import 'package:the_shot2/views/edit_profile_screen.dart';
-import 'package:the_shot2/views/profile_screen.dart';
-import 'package:the_shot2/views/saved_post_screen.dart';
-import 'package:the_shot2/views/settings_screen.dart';
+import 'package:the_shot2/views/email_verification_screen.dart';
+import 'package:the_shot2/views/signup_screen.dart';
 import 'components/theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -81,14 +78,10 @@ class TheShot extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             home: Login(),
             routes: {
-              '/home': (_) => const BottomNavBar(),
               '/login': (_) => Login(),
-              '/profile': (_) => const ProfileScreen(),
-              '/settings': (_) => const SettingsScreen(),
-              '/edit_profile': (_) => const EditProfileScreen(),
-              '/archived_posts': (_) => const ArchivedPostsScreen(),
-              '/saved_posts': (_) => const SavedPostsScreen(),
-              '/search': (_) => const SearchScreen(),
+              '/signup': (_) => const Signup(),
+              '/home': (_) => const BottomNavBar(),
+              '/email_verification': (_) => const EmailVerificationScreen(),
             },
           );
         },
