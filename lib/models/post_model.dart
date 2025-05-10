@@ -12,6 +12,7 @@ class PostModel {
   final String caption;
   final DateTime timestamp;
   final List<String> hashtags;
+  final List<String> mentions;
   final String category;
   final String type; // "image" or "video"
   final bool isArchived;
@@ -29,6 +30,7 @@ class PostModel {
     required this.caption,
     required this.timestamp,
     required this.hashtags,
+    required this.mentions,
     required this.category,
     required this.type,
     this.isArchived = false,
@@ -47,6 +49,7 @@ class PostModel {
       caption: data['caption'] ?? '',
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       hashtags: List<String>.from(data['hashtags'] ?? []),
+      mentions: List<String>.from(data['mentions'] ?? []),
       category: data['category'] ?? 'Uncategorized',
       type: (data['type'] ?? 'video').toString(),
       isArchived: data['isArchived'] ?? false,
@@ -64,6 +67,7 @@ class PostModel {
       'caption': caption,
       'timestamp': Timestamp.fromDate(timestamp),
       'hashtags': hashtags,
+      'mentions': mentions,
       'category': category,
       'type': type,
       'isArchived': isArchived,

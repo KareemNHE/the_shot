@@ -32,6 +32,7 @@ class SharedPostPreview extends StatelessWidget {
                 caption: message.sharedPostCaption ?? '',
                 timestamp: message.timestamp,
                 hashtags: [],
+                mentions: [],
                 category: 'Uncategorized',
                 type: 'image',
               ),

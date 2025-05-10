@@ -187,27 +187,6 @@ class _LoginState extends State<Login> {
                     ),
                   ],
                 ),
-                // Temporary Debug Button for Manual Verification
-                if (true) // Remove in production
-                  TextButton(
-                    onPressed: () async {
-                      User? user = FirebaseAuth.instance.currentUser;
-                      if (user != null) {
-                        bool success = await _viewModel.manuallyVerifyEmail(user.uid);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(success ? 'Email verified' : 'Failed to verify'),
-                          ),
-                        );
-                      }
-                    },
-                    child: Text(
-                      'Manually Verify Email (Debug)',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),

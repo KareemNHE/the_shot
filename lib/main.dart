@@ -57,7 +57,7 @@ class TheShot extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => CameraViewModel()),
         ChangeNotifierProvider(create: (context) => ProfileViewModel()),
         ChangeNotifierProvider(create: (_) => EditProfileViewModel()),
-        ChangeNotifierProvider(create: (_) => SearchViewModel(apiService: ApiService()), child: const SearchScreen(),),
+        ChangeNotifierProvider(create: (_) => SearchViewModel(), child: const SearchScreen(),),
         ChangeNotifierProvider(create: (_) => MessageListViewModel()..loadChats(), child: HomeScreen(),),
         ChangeNotifierProvider(create: (_) => SettingsViewModel(settingsService: SettingsService(),)),
         Provider<NewsService>(create: (_) => NewsService()),

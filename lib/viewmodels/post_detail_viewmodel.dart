@@ -48,6 +48,7 @@ class PostDetailViewModel extends ChangeNotifier {
               caption: post.caption,
               timestamp: post.timestamp,
               hashtags: post.hashtags,
+              mentions: post.mentions,
               category: post.category,
               type: post.type,
               isArchived: post.isArchived,

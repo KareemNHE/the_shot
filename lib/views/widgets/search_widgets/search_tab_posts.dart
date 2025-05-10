@@ -11,13 +11,14 @@ class SearchTabPosts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<SearchViewModel>();
-    final posts = viewModel.filteredUserPosts;
+    final posts = viewModel.allPosts;
 
     if (posts.isEmpty) {
-      return const Center(child: Text('No user posts found'));
+      return const Center(child: Text('No posts available'));
     }
 
     return GridView.builder(
+      padding: const EdgeInsets.all(10.0),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         crossAxisSpacing: 5,
@@ -48,8 +49,7 @@ class SearchTabPosts extends StatelessWidget {
                 : Image.network(
               post.imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-              const Icon(Icons.broken_image),
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
             ),
           ),
         );

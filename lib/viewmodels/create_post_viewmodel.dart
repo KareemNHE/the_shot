@@ -88,7 +88,6 @@ class CreatePostViewModel extends ChangeNotifier {
       return;
     }
 
-    // Validate video duration and resolution
     final videoSpecs = await _videoService.validateVideo(videoFile);
     if (!videoSpecs['isValidDuration']) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -97,7 +96,6 @@ class CreatePostViewModel extends ChangeNotifier {
       return;
     }
 
-    // Check resolution (allow 3840x2160 or 2160x3840)
     final width = videoSpecs['width'] as int;
     final height = videoSpecs['height'] as int;
 
@@ -108,10 +106,9 @@ class CreatePostViewModel extends ChangeNotifier {
       return;
     }
 
-    // Compress video (skip for low-resolution videos)
     File? compressedVideo;
     if (width <= 854 && height <= 480) {
-      compressedVideo = videoFile; // Skip compression
+      compressedVideo = videoFile;
     } else {
       compressedVideo = await _videoService.compressVideo(videoFile, context);
     }
@@ -154,12 +151,15 @@ class CreatePostViewModel extends ChangeNotifier {
       if (userId == null) return;
 
       final hashtags = _extractHashtags(trimmedCaption);
+      // Normalize category to title case
+      final normalizedCategory = category.trim().isEmpty
+          ? 'Uncategorized'
+          : category.trim().split(' ').map((word) => word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}' : '').join(' ');
 
       final ext = file.path.split('.').last;
       final filename = '${DateTime.now().millisecondsSinceEpoch}.$ext';
       final storageRef = FirebaseStorage.instance.ref().child('posts/$filename');
 
-      // Retry logic for upload
       const maxRetries = 3;
       int attempt = 0;
       String? fileUrl;
@@ -182,7 +182,6 @@ class CreatePostViewModel extends ChangeNotifier {
         throw Exception('Failed to obtain file URL');
       }
 
-      // Upload custom thumbnail or generate one
       String? thumbnailUrl;
       if (type == 'video') {
         if (customThumbnail != null) {
@@ -214,9 +213,11 @@ class CreatePostViewModel extends ChangeNotifier {
         'userId': userId,
         'username': userData['username'] ?? '',
         'userProfilePic': userData['profile_picture'] ?? '',
-        'hashtags': hashtags,
-        'category': category,
+        'hashtags': hashtags.map((h) => h.toLowerCase()).toList(), // Store hashtags in lowercase
+        'category': normalizedCategory,
         'type': type,
+        'isArchived': false,
+        'commentsDisabled': false,
       };
 
       await postRef.set(newPost);
@@ -226,7 +227,7 @@ class CreatePostViewModel extends ChangeNotifier {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Post created successfully!')),
       );
-      print('✅ Uploaded a $type post successfully!');
+      print('Uploaded a $type post successfully!');
     } catch (e) {
       print('Error uploading post: $e');
       ScaffoldMessenger.of(context).showSnackBar(

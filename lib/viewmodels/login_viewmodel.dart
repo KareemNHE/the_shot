@@ -44,19 +44,4 @@ class LoginViewModel {
     }
     return user;
   }
-
-  // Temporary function to manually verify email (for testing only)
-  Future<bool> manuallyVerifyEmail(String uid) async {
-    try {
-      // Update Firestore
-      await _firestore.collection('users').doc(uid).update({
-        'isEmailVerified': true,
-      });
-      print('Firestore updated: isEmailVerified set to true for UID: $uid');
-      return true;
-    } catch (e) {
-      print('Error manually verifying email: $e');
-      return false;
-    }
-  }
 }

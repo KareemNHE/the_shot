@@ -27,14 +27,14 @@ class SearchUserListScreen extends StatelessWidget {
           final user = users[index];
           return ListTile(
             leading: CircleAvatar(
-              backgroundImage: user.profile_picture.isNotEmpty
-                  ? (user.profile_picture.startsWith('http')
-                  ? NetworkImage(user.profile_picture)
-                  : AssetImage(user.profile_picture) as ImageProvider)
+              backgroundImage: user.profilePicture.isNotEmpty
+                  ? (user.profilePicture.startsWith('http')
+                  ? NetworkImage(user.profilePicture)
+                  : AssetImage(user.profilePicture) as ImageProvider)
                   : const AssetImage('assets/default_profile.png'),
             ),
             title: Text(user.username),
-            subtitle: Text('${user.first_name} ${user.last_name}'),
+            subtitle: Text('${user.firstName} ${user.lastName}'),
             onTap: () {
               Navigator.push(
                 context,

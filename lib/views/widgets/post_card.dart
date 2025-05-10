@@ -1,18 +1,21 @@
 //views/widgets/post_card.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:the_shot2/models/post_model.dart';
 import 'package:the_shot2/viewmodels/post_interaction_viewmodel.dart';
 import 'package:the_shot2/viewmodels/saved_post_viewmodel.dart';
 import 'package:the_shot2/views/comment_section_screen.dart';
-import 'package:the_shot2/views/edit_post_screen.dart';
 import 'package:the_shot2/views/post_share_screen.dart';
 import 'package:the_shot2/views/profile_screen.dart';
 import 'package:the_shot2/views/user_profile_screen.dart';
 import 'package:the_shot2/views/widgets/video_post_card.dart';
 import 'package:the_shot2/views/widgets/post_menu_widget.dart';
 import 'package:the_shot2/views/post_detail_screen.dart';
+import '../category_feed_screen.dart';
+import '../hashtag_feed_screen.dart';
 
 class PostCard extends StatefulWidget {
   final PostModel post;
@@ -26,6 +29,87 @@ class PostCard extends StatefulWidget {
 class _PostCardState extends State<PostCard> {
   bool _showVideo = false;
   bool _isMounted = false;
+
+  List<TextSpan> _buildCaptionTextSpans(BuildContext context, PostModel post) {
+    final spans = <TextSpan>[];
+    final words = post.caption.split(' ');
+
+    spans.add(
+      TextSpan(
+        text: '${post.username}: ',
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.black,
+        ),
+      ),
+    );
+
+    for (var word in words) {
+      if (word.startsWith('#')) {
+        spans.add(
+          TextSpan(
+            text: '$word ',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF8A56AC),
+              fontWeight: FontWeight.normal,
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => HashtagFeedScreen(hashtag: word),
+                  ),
+                );
+              },
+          ),
+        );
+      } else if (word.startsWith('@')) {
+        spans.add(
+          TextSpan(
+            text: '$word ',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () async {
+                final userSnapshot = await FirebaseFirestore.instance
+                    .collection('users')
+                    .where('username', isEqualTo: word.substring(1))
+                    .limit(1)
+                    .get();
+                if (userSnapshot.docs.isNotEmpty) {
+                  final userId = userSnapshot.docs.first.id;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => UserProfileScreen(userId: userId),
+                    ),
+                  );
+                }
+              },
+          ),
+        );
+      } else {
+        spans.add(
+          TextSpan(
+            text: '$word ',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.normal,
+              color: Colors.black,
+            ),
+          ),
+        );
+      }
+    }
+
+    return spans;
+  }
 
   @override
   void initState() {
@@ -164,27 +248,36 @@ class _PostCardState extends State<PostCard> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              child: RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '${widget.post.username}: ',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      children: _buildCaptionTextSpans(context, widget.post),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (widget.post.category != 'Uncategorized')
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CategoryFeedScreen(category: widget.post.category),
+                          ),
+                        );
+                      },
+                      child: Chip(
+                        label: Text(
+                          widget.post.category,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Color(0xFF8A56AC),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                       ),
                     ),
-                    TextSpan(
-                      text: widget.post.caption,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.normal,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
             ),
             Padding(

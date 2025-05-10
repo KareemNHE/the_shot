@@ -69,6 +69,7 @@ class HomeViewModel extends ChangeNotifier {
             caption: postData['caption'] ?? '',
             timestamp: (postData['timestamp'] as Timestamp).toDate(),
             hashtags: List<String>.from(postData['hashtags'] ?? []),
+            mentions: List<String>.from(postData['mentions'] ?? []),
             category: postData['category'] ?? 'Uncategorized',
             type: postData['type'] ?? 'image',
             isArchived: postData['isArchived'] ?? false, // Default to false

@@ -73,6 +73,9 @@ class PostActionsViewModel extends ChangeNotifier {
         thumbnailUrl = await storageRef.getDownloadURL();
       }
 
+      final hashtags = caption.split(' ').where((word) => word.startsWith('#')).toList();
+      final mentions = await _extractMentions(caption);
+
       final postRef = FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -82,7 +85,8 @@ class PostActionsViewModel extends ChangeNotifier {
       final updateData = <String, dynamic>{
         'caption': caption,
         'category': category,
-        'hashtags': caption.split(' ').where((word) => word.startsWith('#')).toList(),
+        'hashtags': hashtags,
+        'mentions': mentions,
         if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
         'isArchived': false,
       };
@@ -108,6 +112,28 @@ class PostActionsViewModel extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<List<String>> _extractMentions(String caption) async {
+    final mentionRegex = RegExp(r'@(\w+)');
+    final matches = mentionRegex.allMatches(caption);
+    final mentions = <String>[];
+
+    for (var match in matches) {
+      final username = match.group(1);
+      if (username != null) {
+        final userSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('username', isEqualTo: username)
+            .limit(1)
+            .get();
+        if (userSnapshot.docs.isNotEmpty) {
+          mentions.add(userSnapshot.docs.first.id);
+        }
+      }
+    }
+
+    return mentions;
   }
 
   Future<void> deletePost({

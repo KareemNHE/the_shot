@@ -1,3 +1,4 @@
+//models/categories.dart
 class SportCategories {
   static const List<String> list = [
     'American Football',
