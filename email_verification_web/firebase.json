@@ -9,11 +9,11 @@
     "rewrites": [
       {
         "source": "/verify-email",
-        "destination": "/verify_email.html"
+        "destination": "/verify-email.html"
       },
       {
         "source": "/reset-password",
-        "destination": "/reset_password.html"
+        "destination": "/reset-password.html"
       }
     ]
   }

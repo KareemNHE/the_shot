@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/notification_viewmodel.dart';
-import '../models/notification_model.dart';
 import 'post_detail_screen.dart';
 import 'user_profile_screen.dart';
 import 'widgets/notification_tile.dart';
