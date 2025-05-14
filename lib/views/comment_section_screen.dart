@@ -1,21 +1,24 @@
 // views/comment_section_screen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/post_model.dart';
-import '../viewmodels/comment_interaction_viewmodel.dart';
 import '../viewmodels/comment_viewmodel.dart';
+import 'widgets/comment_tile.dart';
 
 class CommentSection extends StatelessWidget {
   final String postId;
   final String postOwnerId;
   final PostModel post;
+  final String? highlightCommentId;
 
   const CommentSection({
     Key? key,
     required this.postId,
     required this.postOwnerId,
     required this.post,
+    this.highlightCommentId,
   }) : super(key: key);
 
   @override
@@ -41,48 +44,12 @@ class CommentSection extends StatelessWidget {
                     itemCount: viewModel.comments.length,
                     itemBuilder: (context, index) {
                       final comment = viewModel.comments[index];
-                      return ChangeNotifierProvider(
-                        create: (_) => CommentInteractionViewModel(
-                          postId: postId,
-                          commentId: comment.id, postOwnerId: '',
-                        ),
-                        child: Consumer<CommentInteractionViewModel>(
-                          builder: (context, commentViewModel, _) {
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundImage: comment.userProfilePic.isNotEmpty
-                                    ? NetworkImage(comment.userProfilePic)
-                                    : const AssetImage('assets/default_profile.png') as ImageProvider,
-                              ),
-                              title: Text(comment.username),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(comment.text),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        TimeOfDay.fromDateTime(comment.timestamp).format(context),
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      GestureDetector(
-                                        onTap: () => commentViewModel.toggleLike(),
-                                        child: Icon(
-                                          commentViewModel.isLiked ? Icons.favorite : Icons.favorite_border,
-                                          size: 16,
-                                          color: Colors.red,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text('${commentViewModel.likeCount}', style: const TextStyle(fontSize: 12)),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                      final isHighlighted = comment.id == highlightCommentId;
+                      return CommentTile(
+                        comment: comment,
+                        postId: postId,
+                        postOwnerId: postOwnerId,
+                        isHighlighted: isHighlighted,
                       );
                     },
                   );
@@ -179,14 +146,50 @@ class CommentSectionSheet extends StatelessWidget {
   final String postOwnerId;
   final ScrollController scrollController;
   final PostModel post;
+  final String? highlightCommentId;
 
   const CommentSectionSheet({
     required this.postId,
     required this.postOwnerId,
     required this.scrollController,
     required this.post,
+    this.highlightCommentId,
     Key? key,
   }) : super(key: key);
+
+  Future<bool> _shouldHighlightComment(BuildContext context) async {
+    if (highlightCommentId == null) return false;
+
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return false;
+
+    try {
+      final notificationQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserId)
+          .collection('notifications')
+          .where('commentId', isEqualTo: highlightCommentId)
+          .where('type', isEqualTo: 'mention')
+          .limit(1)
+          .get();
+
+      if (notificationQuery.docs.isEmpty) return false;
+
+      final notificationDoc = notificationQuery.docs.first;
+      final data = notificationDoc.data();
+      final highlightViewed = data['highlightViewed'] as bool? ?? false;
+
+      if (!highlightViewed) {
+        // Mark as viewed
+        await notificationDoc.reference.update({'highlightViewed': true});
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error checking highlightViewed: $e');
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -194,87 +197,72 @@ class CommentSectionSheet extends StatelessWidget {
       create: (_) => CommentViewModel(postId: postId, postOwnerId: postOwnerId),
       child: Consumer<CommentViewModel>(
         builder: (context, viewModel, _) {
-          return Column(
-            children: [
-              Expanded(
-                child: viewModel.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                  controller: scrollController,
-                  itemCount: viewModel.comments.length,
-                  itemBuilder: (context, index) {
-                    final comment = viewModel.comments[index];
-                    return ChangeNotifierProvider(
-                      create: (_) => CommentInteractionViewModel(
-                        postId: postId,
-                        commentId: comment.id, postOwnerId: '',
-                      ),
-                      child: Consumer<CommentInteractionViewModel>(
-                        builder: (context, commentViewModel, _) {
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: comment.userProfilePic.isNotEmpty
-                                  ? NetworkImage(comment.userProfilePic)
-                                  : const AssetImage('assets/default_profile.png') as ImageProvider,
-                            ),
-                            title: Text(comment.username),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(comment.text),
-                                Row(
-                                  children: [
-                                    Text(
-                                      TimeOfDay.fromDateTime(comment.timestamp).format(context),
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () => commentViewModel.toggleLike(),
-                                      child: Icon(
-                                        commentViewModel.isLiked ? Icons.favorite : Icons.favorite_border,
-                                        size: 16,
-                                        color: Colors.red,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text('${commentViewModel.likeCount}', style: const TextStyle(fontSize: 12)),
-                                  ],
-                                ),
-                              ],
-                            ),
+          return FutureBuilder<bool>(
+            future: _shouldHighlightComment(context),
+            builder: (context, snapshot) {
+              final isHighlightedComment = snapshot.data ?? false;
+
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (highlightCommentId != null && viewModel.comments.isNotEmpty) {
+                  final index = viewModel.comments
+                      .indexWhere((comment) => comment.id == highlightCommentId);
+                  if (index != -1) {
+                    scrollController.animateTo(
+                      index * 80.0, // Approximate height of a comment tile
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                }
+              });
+
+              return Column(
+                children: [
+                  Expanded(
+                    child: viewModel.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : ListView.builder(
+                      controller: scrollController,
+                      itemCount: viewModel.comments.length,
+                      itemBuilder: (context, index) {
+                        final comment = viewModel.comments[index];
+                        final isHighlighted = isHighlightedComment && comment.id == highlightCommentId;
+                        return CommentTile(
+                          comment: comment,
+                          postId: postId,
+                          postOwnerId: postOwnerId,
+                          isHighlighted: isHighlighted,
+                        );
+                      },
+                    ),
+                  ),
+                  Consumer<CommentViewModel>(
+                    builder: (context, viewModel, _) {
+                      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+                      final isOwner = currentUserId == postOwnerId;
+                      if (viewModel.errorMessage != null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(viewModel.errorMessage!)),
                           );
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Consumer<CommentViewModel>(
-                builder: (context, viewModel, _) {
-                  final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-                  final isOwner = currentUserId == postOwnerId;
-                  if (viewModel.errorMessage != null) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(viewModel.errorMessage!)),
-                      );
-                      viewModel.clearError();
-                    });
-                  }
-                  if (post.commentsDisabled && !isOwner) {
-                    return const Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: Text(
-                        'Comments are disabled for this post.',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    );
-                  }
-                  return _CommentInputField(postId: postId);
-                },
-              ),
-            ],
+                          viewModel.clearError();
+                        });
+                      }
+                      if (post.commentsDisabled && !isOwner) {
+                        return const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: Text(
+                            'Comments are disabled for this post.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
+                      return _CommentInputField(postId: postId);
+                    },
+                  ),
+                ],
+              );
+            },
           );
         },
       ),

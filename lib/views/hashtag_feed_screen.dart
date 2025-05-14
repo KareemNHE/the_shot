@@ -5,7 +5,6 @@ import 'package:the_shot2/views/post_detail_screen.dart';
 import 'package:the_shot2/views/widgets/search_widgets/search_app_bar.dart';
 import 'package:the_shot2/views/widgets/video_post_card.dart';
 import '../../viewmodels/hashtag_viewmodel.dart';
-import '../../viewmodels/search_viewmodel.dart';
 import '../../services/hashtag_service.dart';
 
 class HashtagFeedScreen extends StatefulWidget {

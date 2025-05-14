@@ -4,15 +4,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:the_shot2/models/post_model.dart';
-import 'package:the_shot2/viewmodels/post_interaction_viewmodel.dart';
-import 'package:the_shot2/viewmodels/post_detail_viewmodel.dart';
-import 'package:the_shot2/viewmodels/saved_post_viewmodel.dart';
-import 'package:the_shot2/views/comment_section_screen.dart';
-import 'package:the_shot2/views/post_share_screen.dart';
-import 'package:the_shot2/views/user_profile_screen.dart';
-import 'package:the_shot2/views/widgets/video_post_card.dart';
-import 'package:the_shot2/views/widgets/post_menu_widget.dart';
+import '../components/theme.dart';
+import '../models/post_model.dart';
+import '../viewmodels/post_interaction_viewmodel.dart';
+import '../viewmodels/post_detail_viewmodel.dart';
+import '../viewmodels/saved_post_viewmodel.dart';
+import '../views/comment_section_screen.dart';
+import '../views/post_share_screen.dart';
+import '../views/user_profile_screen.dart';
+import '../views/widgets/video_post_card.dart';
+import '../views/widgets/post_menu_widget.dart';
 import 'category_feed_screen.dart';
 import 'hashtag_feed_screen.dart';
 
@@ -20,8 +21,15 @@ class PostDetailScreen extends StatefulWidget {
   final PostModel? post;
   final String? postId;
   final String? postOwnerId;
+  final String? highlightCommentId;
 
-  const PostDetailScreen({Key? key, this.post, this.postId, this.postOwnerId}) : super(key: key);
+  const PostDetailScreen({
+    Key? key,
+    this.post,
+    this.postId,
+    this.postOwnerId,
+    this.highlightCommentId,
+  }) : super(key: key);
 
   @override
   State<PostDetailScreen> createState() => _PostDetailScreenState();
@@ -30,6 +38,7 @@ class PostDetailScreen extends StatefulWidget {
 class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _showVideo = false;
   bool _isMounted = false;
+  final ScrollController _commentScrollController = ScrollController();
 
   List<TextSpan> _buildCaptionTextSpans(BuildContext context, PostModel post) {
     final spans = <TextSpan>[];
@@ -38,11 +47,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     spans.add(
       TextSpan(
         text: '${post.username}: ',
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-        ),
+        style: Theme.of(context).textTheme.titleLarge,
       ),
     );
 
@@ -51,9 +56,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         spans.add(
           TextSpan(
             text: '$word ',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
-              color: Color(0xFF8A56AC),
+              color: kPrimaryAccent,
               fontWeight: FontWeight.normal,
             ),
             recognizer: TapGestureRecognizer()
@@ -73,7 +78,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             text: '$word ',
             style: const TextStyle(
               fontSize: 16,
-              color: Colors.black,
+              color: kPrimaryAccent,
               fontWeight: FontWeight.bold,
             ),
             recognizer: TapGestureRecognizer()
@@ -99,11 +104,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         spans.add(
           TextSpan(
             text: '$word ',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.normal,
-              color: Colors.black,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
         );
       }
@@ -118,8 +119,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     _isMounted = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_isMounted) {
-        final postDetailViewModel = Provider.of<PostDetailViewModel>(context, listen: false);
-        final savedPostsViewModel = Provider.of<SavedPostsViewModel>(context, listen: false);
+        final postDetailViewModel =
+        Provider.of<PostDetailViewModel>(context, listen: false);
+        final savedPostsViewModel =
+        Provider.of<SavedPostsViewModel>(context, listen: false);
         if (widget.post != null) {
           postDetailViewModel.setPost(widget.post!);
         } else if (widget.postId != null && widget.postOwnerId != null) {
@@ -129,13 +132,62 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           widget.post?.id ?? widget.postId ?? '',
           FirebaseAuth.instance.currentUser?.uid ?? '',
         );
+        if (widget.highlightCommentId != null) {
+          _openCommentSection();
+        }
       }
     });
+  }
+
+  void _openCommentSection() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) {
+          return CommentSectionSheet(
+            postId: widget.post?.id ?? widget.postId!,
+            postOwnerId: widget.post?.userId ?? widget.postOwnerId!,
+            scrollController: _commentScrollController,
+            post: widget.post ??
+                PostModel(
+                  id: widget.postId!,
+                  userId: widget.postOwnerId!,
+                  username: '',
+                  userProfilePic: '',
+                  imageUrl: '',
+                  videoUrl: '',
+                  thumbnailUrl: '',
+                  caption: '',
+                  timestamp: DateTime.now(),
+                  hashtags: [],
+                  mentions: [],
+                  category: 'Uncategorized',
+                  type: 'image',
+                ),
+            highlightCommentId: widget.highlightCommentId,
+          );
+        },
+      ),
+    );
+    if (_isMounted) {
+      Provider.of<PostInteractionViewModel>(context, listen: false)
+          .fetchInteractionData(
+          '${widget.post?.userId ?? widget.postOwnerId}/posts/${widget.post?.id ?? widget.postId}');
+    }
   }
 
   @override
   void dispose() {
     _isMounted = false;
+    _commentScrollController.dispose();
     super.dispose();
   }
 
@@ -147,7 +199,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        if (postDetailViewModel.post == null || postDetailViewModel.errorMessage != null) {
+        if (postDetailViewModel.post == null ||
+            postDetailViewModel.errorMessage != null) {
           return Scaffold(
             appBar: AppBar(title: const Text("Post")),
             body: Center(
@@ -162,7 +215,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ElevatedButton(
                     onPressed: () {
                       if (widget.postId != null && widget.postOwnerId != null) {
-                        postDetailViewModel.fetchPost(widget.postId!, widget.postOwnerId!);
+                        postDetailViewModel.fetchPost(
+                            widget.postId!, widget.postOwnerId!);
                       }
                     },
                     child: const Text('Retry'),
@@ -184,7 +238,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 if (_isMounted && post.userId.isNotEmpty) {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => UserProfileScreen(userId: post.userId)),
+                    MaterialPageRoute(
+                        builder: (_) => UserProfileScreen(userId: post.userId)),
                   );
                 }
               },
@@ -194,7 +249,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     radius: 16,
                     backgroundImage: post.userProfilePic.isNotEmpty
                         ? NetworkImage(post.userProfilePic)
-                        : const AssetImage('assets/default_profile.png') as ImageProvider,
+                        : const AssetImage('assets/default_profile.png')
+                    as ImageProvider,
                   ),
                   const SizedBox(width: 8),
                   Text(post.username.isNotEmpty ? post.username : 'Unknown'),
@@ -212,7 +268,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                   builder: (context) => PostMenuWidget(
                     post: post,
-                    isSavedScreen: ModalRoute.of(context)?.settings.name == '/saved_posts',
+                    isSavedScreen:
+                    ModalRoute.of(context)?.settings.name == '/saved_posts',
                   ),
                 ),
               ),
@@ -250,7 +307,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -266,7 +324,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => CategoryFeedScreen(category: post.category),
+                                builder: (_) =>
+                                    CategoryFeedScreen(category: post.category),
                               ),
                             );
                           },
@@ -275,9 +334,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               post.category,
                               style: const TextStyle(color: Colors.white),
                             ),
-                            backgroundColor: Color(0xFF8A56AC),
+                            backgroundColor: kPrimaryAccent,
                             padding: const EdgeInsets.symmetric(horizontal: 8),
-                            labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                            labelPadding:
+                            const EdgeInsets.symmetric(horizontal: 4),
                           ),
                         ),
                     ],
@@ -289,10 +349,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     children: [
                       IconButton(
                         icon: Icon(
-                          interactionViewModel.isLiked ? Icons.favorite : Icons.favorite_border,
+                          interactionViewModel.isLiked
+                              ? Icons.favorite
+                              : Icons.favorite_border,
                           color: Colors.red,
                         ),
-                        onPressed: () => interactionViewModel.toggleLike(post.id, post.userId),
+                        onPressed: () => interactionViewModel.toggleLike(
+                            post.id, post.userId),
                       ),
                       Text('${interactionViewModel.likeCount}'),
                       const SizedBox(width: 16),
@@ -300,30 +363,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         icon: const Icon(Icons.comment),
                         onPressed: post.commentsDisabled
                             ? null
-                            : () async {
-                          await showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                            ),
-                            builder: (context) => DraggableScrollableSheet(
-                              initialChildSize: 0.6,
-                              minChildSize: 0.4,
-                              maxChildSize: 0.95,
-                              expand: false,
-                              builder: (context, scrollController) {
-                                return CommentSectionSheet(
-                                  postId: post.id,
-                                  postOwnerId: post.userId,
-                                  scrollController: scrollController,
-                                  post: post,
-                                );
-                              },
-                            ),
-                          );
-                          await interactionViewModel.fetchInteractionData('${post.userId}/posts/${post.id}');
-                        },
+                            : () => _openCommentSection(),
                       ),
                       Text('${interactionViewModel.commentCount}'),
                       const Spacer(),
@@ -334,7 +374,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             context: context,
                             isScrollControlled: true,
                             shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                              borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(20)),
                             ),
                             builder: (context) => DraggableScrollableSheet(
                               initialChildSize: 0.6,
@@ -349,7 +390,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               },
                             ),
                           );
-                          await interactionViewModel.fetchInteractionData('${post.userId}/posts/${post.id}');
+                          await interactionViewModel.fetchInteractionData(
+                              '${post.userId}/posts/${post.id}');
                         },
                       ),
                     ],

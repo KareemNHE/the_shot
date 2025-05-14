@@ -6,8 +6,6 @@ import 'package:the_shot2/views/archived_post_screen.dart';
 import 'package:the_shot2/views/blocked_users_screen.dart';
 import 'package:the_shot2/views/widgets/settings_item.dart';
 
-import 'archived_post_screen.dart';
-
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
 

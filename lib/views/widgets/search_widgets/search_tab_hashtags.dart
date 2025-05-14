@@ -9,30 +9,46 @@ class SearchTabHashtags extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<SearchViewModel>();
-    final hashtags = viewModel.filteredHashtagPosts
-        .expand((post) => post.hashtags)
-        .toSet()
-        .toList();
+    return Consumer<SearchViewModel>(
+      builder: (context, viewModel, child) {
+        if (viewModel.isRefreshing) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    if (hashtags.isEmpty) {
-      return const Center(child: Text('No hashtags found'));
-    }
+        final hashtags = viewModel.filteredHashtagPosts
+            .expand((post) => post.hashtags)
+            .toSet()
+            .toList();
 
-    return ListView.builder(
-      itemCount: hashtags.length,
-      itemBuilder: (context, index) {
-        final hashtag = hashtags[index];
-        return ListTile(
-          title: Text(hashtag),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => HashtagFeedScreen(hashtag: hashtag),
-              ),
-            );
+        if (hashtags.isEmpty) {
+          return const Center(child: Text('No hashtags found'));
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            await viewModel.fetchAllUserPosts(isRefresh: true);
+            viewModel.search(Provider.of<TextEditingController>(context, listen: false).text);
           },
+          color: const Color(0xFF8A56AC),
+          backgroundColor: Colors.white,
+          displacement: 40.0,
+          child: ListView.builder(
+            itemCount: hashtags.length,
+            itemBuilder: (context, index) {
+              final hashtag = hashtags[index];
+              return ListTile(
+                title: Text(hashtag),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => HashtagFeedScreen(hashtag: hashtag),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );

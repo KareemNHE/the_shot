@@ -1,9 +1,8 @@
 // viewmodels/comment_viewmodel.dart
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import '../models/comment_model.dart';
-import '../services/notification_service.dart';
+import '../services/comment_service.dart';
 
 class CommentViewModel extends ChangeNotifier {
   final String postId;
@@ -61,7 +60,7 @@ class CommentViewModel extends ChangeNotifier {
           .orderBy('timestamp', descending: true)
           .get();
 
-      _comments = snapshot.docs.map((doc) => CommentModel.fromFirestore(doc)).toList();
+      _comments = snapshot.docs.map((doc) => CommentModel.fromMap(doc.data(), doc.id)).toList();
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Error fetching comments: $e';
@@ -73,50 +72,13 @@ class CommentViewModel extends ChangeNotifier {
   }
 
   Future<void> addComment(String text) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      _errorMessage = 'You must be logged in to comment';
-      notifyListeners();
-      return;
-    }
-
-    // Check if comments are disabled and the user is not the post owner
-    if (_commentsDisabled && user.uid != postOwnerId) {
-      _errorMessage = 'Comments are disabled for this post';
-      notifyListeners();
-      return;
-    }
-
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      final userData = userDoc.data() ?? {};
-
-      final commentData = {
-        'userId': user.uid,
-        'username': userData['username'] ?? user.email,
-        'userProfilePic': userData['profile_picture'] ?? '',
-        'text': text,
-        'timestamp': FieldValue.serverTimestamp(),
-      };
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(postOwnerId)
-          .collection('posts')
-          .doc(postId)
-          .collection('comments')
-          .add(commentData);
-
-      await fetchComments(); // Refresh after adding
-      await NotificationService.createNotification(
-        recipientId: postOwnerId,
-        type: 'comment',
-        relatedPostId: postId,
+      await CommentService.addComment(
+        postId: postId,
         postOwnerId: postOwnerId,
+        text: text,
       );
+      await fetchComments(); // Refresh after adding
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Failed to add comment: $e';

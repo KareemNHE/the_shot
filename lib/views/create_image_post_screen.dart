@@ -71,7 +71,7 @@ class _CreateImagePostScreenState extends State<CreateImagePostScreen> {
                   final profileViewModel = Provider.of<ProfileViewModel>(context, listen: false);
                   await profileViewModel.fetchUserProfile();
                 },
-                child: const Text('Upload Image'),
+                child: const Text('Post!'),
               ),
             ],
           ),

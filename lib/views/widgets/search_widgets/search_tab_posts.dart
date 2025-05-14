@@ -10,47 +10,61 @@ class SearchTabPosts extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<SearchViewModel>();
-    final posts = viewModel.allPosts;
+    return Consumer<SearchViewModel>(
+      builder: (context, viewModel, child) {
+        if (viewModel.isRefreshing) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    if (posts.isEmpty) {
-      return const Center(child: Text('No posts available'));
-    }
+        if (viewModel.allPosts.isEmpty) {
+          return const Center(child: Text('No posts available'));
+        }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(10.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 5,
-        mainAxisSpacing: 5,
-        childAspectRatio: 1,
-      ),
-      itemCount: posts.length,
-      itemBuilder: (context, index) {
-        final post = posts[index];
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          clipBehavior: Clip.hardEdge,
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PostDetailScreen(post: post),
+        return RefreshIndicator(
+          onRefresh: () async {
+            await viewModel.fetchAllUserPosts(isRefresh: true);
+            viewModel.search(Provider.of<TextEditingController>(context, listen: false).text);
+          },
+          color: const Color(0xFF8A56AC),
+          backgroundColor: Colors.white,
+          displacement: 40.0,
+          child: GridView.builder(
+            padding: const EdgeInsets.all(10.0),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 5,
+              mainAxisSpacing: 5,
+              childAspectRatio: 1,
+            ),
+            itemCount: viewModel.allPosts.length,
+            itemBuilder: (context, index) {
+              final post = viewModel.allPosts[index];
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                clipBehavior: Clip.hardEdge,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PostDetailScreen(post: post),
+                      ),
+                    );
+                  },
+                  child: post.type == 'video'
+                      ? VideoPostCard(
+                    post: post,
+                    isThumbnailOnly: true,
+                    isGridView: true,
+                  )
+                      : Image.network(
+                    post.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
+                  ),
                 ),
               );
             },
-            child: post.type == 'video'
-                ? VideoPostCard(
-              post: post,
-              isThumbnailOnly: true,
-              isGridView: true,
-            )
-                : Image.network(
-              post.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
-            ),
           ),
         );
       },

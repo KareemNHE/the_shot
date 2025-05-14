@@ -42,7 +42,17 @@ class SignUpViewModel {
   // Send email verification
   Future<bool> sendEmailVerification(User user) async {
     try {
-      await user.sendEmailVerification();
+      await user.sendEmailVerification(
+        ActionCodeSettings(
+          url: 'https://eauth-5e352.web.app/verify-email',
+          handleCodeInApp: true,
+          iOSBundleId: 'com.example.theshot', // Replace with your iOS bundle ID
+          androidPackageName: 'com.example.theshot', // Replace with your Android package name
+          androidInstallApp: true,
+          androidMinimumVersion: '1',
+          dynamicLinkDomain: 'eauth5e352.page.link',
+        ),
+      );
       print('Verification email sent to ${user.email}');
       return true;
     } catch (e) {

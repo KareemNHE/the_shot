@@ -8,6 +8,7 @@ class CommentModel {
   final String userProfilePic;
   final String text;
   final DateTime timestamp;
+  final List<String> mentions;
 
   CommentModel({
     required this.id,
@@ -16,18 +17,30 @@ class CommentModel {
     required this.userProfilePic,
     required this.text,
     required this.timestamp,
+    required this.mentions,
   });
 
-  factory CommentModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'userId': userId,
+      'username': username,
+      'userProfilePic': userProfilePic,
+      'text': text,
+      'timestamp': Timestamp.fromDate(timestamp),
+      'mentions': mentions,
+    };
+  }
 
+  factory CommentModel.fromMap(Map<String, dynamic> map, String id) {
     return CommentModel(
-      id: doc.id,
-      userId: data['userId'],
-      username: data['username'] ?? 'Anonymous',
-      userProfilePic: data['userProfilePic'] ?? '',
-      text: data['text'] ?? '',
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
+      id: id,
+      userId: map['userId'] ?? '',
+      username: map['username'] ?? 'Unknown',
+      userProfilePic: map['userProfilePic'] ?? '',
+      text: map['text'] ?? '',
+      timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      mentions: List<String>.from(map['mentions'] ?? []),
     );
   }
 }

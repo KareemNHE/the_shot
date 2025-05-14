@@ -171,7 +171,7 @@ class _CreateVideoPostScreenState extends State<CreateVideoPostScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8A56AC),
               ),
-              child: const Text('Upload Video'),
+              child: const Text('Post!'),
             ),
           ],
         ),

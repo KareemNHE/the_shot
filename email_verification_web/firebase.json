@@ -6,6 +6,7 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "appAssociation": "AUTO",
     "rewrites": [
       {
         "source": "/verify-email",
@@ -14,7 +15,22 @@
       {
         "source": "/reset-password",
         "destination": "/reset-password.html"
+      },
+      {
+        "source": "/__/auth/action",
+        "function": "redirectAuthAction"
+      },
+      {
+        "source": "/{__,auth}/**",
+        "dynamicLinks": true
+      },
+      {
+        "source": "/eauth5e352.page.link/**",
+        "function": "redirectAuthAction"
       }
     ]
+  },
+  "functions": {
+    "source": "functions"
   }
 }

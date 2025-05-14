@@ -51,21 +51,52 @@ class FirebaseAuthService {
   // Send Password Reset Email
   Future<bool> sendPasswordResetEmail(String email) async {
     try {
+      print('Sending password reset email with ActionCodeSettings: url=https://eauth-5e352.web.app/reset-password, linkDomain=eauth5e352.page.link');
       await _auth.sendPasswordResetEmail(
         email: email,
         actionCodeSettings: ActionCodeSettings(
           url: 'https://eauth-5e352.web.app/reset-password',
           handleCodeInApp: true,
-          iOSBundleId: 'com.example.theshot', // Replace with your iOS bundle ID
-          androidPackageName: 'com.example.theshot', // Replace with your Android package name
+          iOSBundleId: 'com.example.the_shot2',
+          androidPackageName: 'com.example.the_shot2',
           androidInstallApp: true,
           androidMinimumVersion: '1',
+          linkDomain: 'eauth5e352.page.link',
         ),
       );
       print('Password reset email sent to $email');
       return true;
+    } on FirebaseAuthException catch (e) {
+      print('FirebaseAuth error: ${e.code} - ${e.message}');
+      throw e;
     } catch (e) {
       print('Error sending password reset email: $e');
+      return false;
+    }
+  }
+
+  // Send Email Verification
+  Future<bool> sendEmailVerification(User user) async {
+    try {
+      print('Sending email verification with ActionCodeSettings: url=https://eauth-5e352.web.app/verify-email, linkDomain=eauth5e352.page.link');
+      await user.sendEmailVerification(
+        ActionCodeSettings(
+          url: 'https://eauth-5e352.web.app/verify-email',
+          handleCodeInApp: true,
+          iOSBundleId: 'com.example.the_shot2',
+          androidPackageName: 'com.example.the_shot2',
+          androidInstallApp: true,
+          androidMinimumVersion: '1',
+          linkDomain: 'eauth5e352.page.link',
+        ),
+      );
+      print('Verification email sent to ${user.email}');
+      return true;
+    } on FirebaseAuthException catch (e) {
+      print('FirebaseAuth error: ${e.code} - ${e.message}');
+      throw e;
+    } catch (e) {
+      print('Error sending verification email: $e');
       return false;
     }
   }

@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:mime/mime.dart';
+import '../services/notification_service.dart';
 import '../services/video_service.dart';
 import 'home_viewmodel.dart';
 
@@ -13,6 +14,7 @@ class CreatePostViewModel extends ChangeNotifier {
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
   FlutterLocalNotificationsPlugin();
   final VideoService _videoService = VideoService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   CreatePostViewModel() {
     initializeNotifications();
@@ -81,7 +83,8 @@ class CreatePostViewModel extends ChangeNotifier {
     final ext = videoFile.path.split('.').last.toLowerCase();
     final validVideoExtensions = ['mp4', 'mov', 'mkv', 'mpeg', '3gp', '3gpp', 'avi'];
 
-    if ((mimeType == null || !mimeType.startsWith('video/')) && !validVideoExtensions.contains(ext)) {
+    if ((mimeType == null || !mimeType.startsWith('video/')) &&
+        !validVideoExtensions.contains(ext)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selected file is not a valid video!')),
       );
@@ -101,7 +104,9 @@ class CreatePostViewModel extends ChangeNotifier {
 
     if ((width > 3840 || height > 2160) && (width > 2160 || height > 3840)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Video resolution exceeds 4K (3840x2160 or 2160x3840) limit!')),
+        const SnackBar(
+            content:
+            Text('Video resolution exceeds 4K (3840x2160 or 2160x3840) limit!')),
       );
       return;
     }
@@ -151,7 +156,7 @@ class CreatePostViewModel extends ChangeNotifier {
       if (userId == null) return;
 
       final hashtags = _extractHashtags(trimmedCaption);
-      // Normalize category to title case
+      final mentions = await _extractMentions(trimmedCaption);
       final normalizedCategory = category.trim().isEmpty
           ? 'Uncategorized'
           : category.trim().split(' ').map((word) => word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}' : '').join(' ');
@@ -186,16 +191,20 @@ class CreatePostViewModel extends ChangeNotifier {
       if (type == 'video') {
         if (customThumbnail != null) {
           final thumbExt = customThumbnail.path.split('.').last;
-          final thumbFilename = '${DateTime.now().millisecondsSinceEpoch}_thumb.$thumbExt';
-          final thumbRef = FirebaseStorage.instance.ref().child('thumbnails/$thumbFilename');
+          final thumbFilename =
+              '${DateTime.now().millisecondsSinceEpoch}_thumb.$thumbExt';
+          final thumbRef =
+          FirebaseStorage.instance.ref().child('thumbnails/$thumbFilename');
           final thumbUploadTask = await thumbRef.putFile(customThumbnail);
           thumbnailUrl = await thumbUploadTask.ref.getDownloadURL();
         } else if (videoFile != null) {
-          thumbnailUrl = await _videoService.generateAndUploadThumbnail(videoFile, userId);
+          thumbnailUrl =
+          await _videoService.generateAndUploadThumbnail(videoFile, userId);
         }
       }
 
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      final userDoc =
+      await FirebaseFirestore.instance.collection('users').doc(userId).get();
       final userData = userDoc.data() ?? {};
 
       final postRef = FirebaseFirestore.instance
@@ -213,7 +222,8 @@ class CreatePostViewModel extends ChangeNotifier {
         'userId': userId,
         'username': userData['username'] ?? '',
         'userProfilePic': userData['profile_picture'] ?? '',
-        'hashtags': hashtags.map((h) => h.toLowerCase()).toList(), // Store hashtags in lowercase
+        'hashtags': hashtags.map((h) => h.toLowerCase()).toList(),
+        'mentions': mentions,
         'category': normalizedCategory,
         'type': type,
         'isArchived': false,
@@ -221,6 +231,27 @@ class CreatePostViewModel extends ChangeNotifier {
       };
 
       await postRef.set(newPost);
+
+      // Create notifications for mentioned users
+      for (var username in mentions) {
+        final mentionedUserDoc = await _firestore
+            .collection('users')
+            .where('username', isEqualTo: username)
+            .limit(1)
+            .get();
+        if (mentionedUserDoc.docs.isNotEmpty) {
+          final mentionedUserId = mentionedUserDoc.docs.first.id;
+          await NotificationService.createNotification(
+            recipientId: mentionedUserId,
+            type: 'mention',
+            relatedPostId: postRef.id,
+            postOwnerId: userId,
+            postId: postRef.id,
+            extraMessage: '${userData['username']} mentioned you in a post.',
+          );
+        }
+      }
+
       await homeViewModel.fetchPosts();
       await showNotification();
 
@@ -239,5 +270,26 @@ class CreatePostViewModel extends ChangeNotifier {
   List<String> _extractHashtags(String caption) {
     final RegExp hashtagRegex = RegExp(r'\B#\w\w+');
     return hashtagRegex.allMatches(caption).map((match) => match.group(0)!).toList();
+  }
+
+  Future<List<String>> _extractMentions(String caption) async {
+    final mentionRegex = RegExp(r'@(\w+)');
+    final mentions = mentionRegex
+        .allMatches(caption)
+        .map((match) => match.group(1)!)
+        .toSet()
+        .toList();
+    final validatedMentions = <String>[];
+    for (var username in mentions) {
+      final snapshot = await _firestore
+          .collection('users')
+          .where('username', isEqualTo: username)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        validatedMentions.add(username);
+      }
+    }
+    return validatedMentions;
   }
 }

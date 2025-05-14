@@ -15,6 +15,7 @@ class AppNotification {
   final String? relatedPostId;
   final String? message;
   final String? postOwnerId;
+  final bool highlightViewed;
 
   AppNotification({
     required this.id,
@@ -30,6 +31,7 @@ class AppNotification {
     this.relatedPostId,
     this.message,
     this.postOwnerId,
+    this.highlightViewed = false,
   });
 
   factory AppNotification.fromFirestore(DocumentSnapshot doc) {
@@ -48,6 +50,7 @@ class AppNotification {
       relatedPostId: data['relatedPostId'],
       message: data['message'],
       postOwnerId: data['postOwnerId'],
+      highlightViewed: data['highlightViewed'] ?? false,
     );
   }
 
@@ -65,6 +68,7 @@ class AppNotification {
       'isRead': isRead,
       'timestamp': Timestamp.fromDate(timestamp),
       'postOwnerId': postOwnerId,
+      'highlightViewed': highlightViewed,
     };
   }
 }

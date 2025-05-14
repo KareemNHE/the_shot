@@ -1,6 +1,8 @@
 //views/widgets/notification_tile.dart
 import 'package:flutter/material.dart';
 import 'package:the_shot2/models/notification_model.dart';
+import 'package:the_shot2/views/post_detail_screen.dart';
+import 'package:the_shot2/views/user_profile_screen.dart';
 
 class NotificationTile extends StatelessWidget {
   final AppNotification notification;
@@ -23,8 +25,42 @@ class NotificationTile extends StatelessWidget {
       ),
       title: Text(_getNotificationText(notification)),
       subtitle: Text(_formatTime(notification.timestamp)),
-      onTap: onTap,
+      onTap: () => _handleTap(context),
     );
+  }
+
+  void _handleTap(BuildContext context) {
+    switch (notification.type) {
+      case 'mention':
+      case 'comment':
+        if (notification.postId != null && notification.postOwnerId != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PostDetailScreen(
+                postId: notification.postId!,
+                postOwnerId: notification.postOwnerId!,
+                highlightCommentId: notification.highlightViewed ? null : notification.commentId,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Post not found')),
+          );
+        }
+        break;
+      case 'follow':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => UserProfileScreen(userId: notification.fromUserId),
+          ),
+        );
+        break;
+      default:
+        onTap();
+    }
   }
 
   String _getNotificationText(AppNotification notification) {
@@ -39,6 +75,8 @@ class NotificationTile extends StatelessWidget {
         return '${notification.senderUsername} tagged you.';
       case 'follow_request':
         return '${notification.senderUsername} requested to follow you.';
+      case 'mention':
+        return notification.message ?? '${notification.senderUsername} mentioned you in a comment.';
       default:
         return 'You have a new notification.';
     }

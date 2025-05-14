@@ -29,7 +29,7 @@ class PostDetailViewModel extends ChangeNotifier {
       if (data != null) {
         PostModel post = PostModel.fromFirestore(data, doc.id);
 
-        if (post.username == 'Unknown' || post.userProfilePic.isEmpty) {
+        if (post.username == 'Unknown' || post.userProfilePic!.isEmpty) {
           final userDoc = await FirebaseFirestore.instance
               .collection('users')
               .doc(post.userId)

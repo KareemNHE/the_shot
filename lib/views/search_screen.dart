@@ -80,21 +80,13 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               return const Center(child: Text('Error loading posts. Please try again.'));
             }
 
-            return RefreshIndicator(
-              onRefresh: () async {
-                await viewModel.fetchAllUserPosts(isRefresh: true);
-              },
-              color: Theme.of(context).primaryColor,
-              backgroundColor: Colors.white,
-              displacement: 40.0,
-              child: TabBarView(
-                controller: _tabController,
-                children: const [
-                  SearchTabPosts(),
-                  SearchTabHashtags(),
-                  SearchTabAccounts(),
-                ],
-              ),
+            return TabBarView(
+              controller: _tabController,
+              children: const [
+                SearchTabPosts(),
+                SearchTabHashtags(),
+                SearchTabAccounts(),
+              ],
             );
           },
         ),

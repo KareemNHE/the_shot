@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +13,7 @@
       padding: 0;
       color: #333333;
     }
+
     .container {
       max-width: 600px;
       margin: 20px auto;
@@ -20,29 +22,35 @@
       overflow: hidden;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
+
     .header {
       background-color: #8A56AC;
       padding: 20px;
       text-align: center;
     }
+
     .header img {
       max-width: 200px;
     }
+
     .content {
       padding: 30px;
       text-align: center;
     }
+
     .content h1 {
       font-size: 24px;
       color: #333333;
       margin-bottom: 20px;
     }
+
     .content p {
       font-size: 16px;
       line-height: 1.5;
       color: #555555;
       margin-bottom: 20px;
     }
+
     .button {
       display: inline-block;
       padding: 12px 24px;
@@ -52,10 +60,21 @@
       font-weight: bold;
       border-radius: 4px;
       margin: 20px 0;
+      cursor: pointer;
     }
+
     .button:hover {
       background-color: #6A1B9A;
     }
+
+    .success {
+      color: #2e7d32;
+    }
+
+    .error {
+      color: #d32f2f;
+    }
+
     .footer {
       background-color: #f4f4f4;
       padding: 20px;
@@ -63,21 +82,25 @@
       font-size: 12px;
       color: #777777;
     }
+
     .footer a {
       color: #8A56AC;
       text-decoration: none;
     }
+
     @media only screen and (max-width: 600px) {
       .container {
         width: 100%;
         margin: 10px;
       }
+
       .content {
         padding: 20px;
       }
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <div class="header">
@@ -86,19 +109,68 @@
     <div class="content">
       <h1>Welcome to The Shot!</h1>
       <p>Thank you for signing up! You're almost ready to join The Shot team and enter a new realm of sport.
-         To complete your registration, please verify your email address by clicking the button below.</p>
-      <a href="%LINK%" class="button">Verify Your Email</a>
-      <p>If the button doesn’t work, copy and paste this link into your browser:</p>
-      <p><a href="%LINK%" style="color: #8A56AC;">%LINK%</a></p>
-      <p>If you didn’t create an account with The Shot, please ignore this email or contact us at <a href="mailto:support@theshot.app">support@theshot.app</a>.</p>
+        To complete your registration, please verify your email address by clicking the button below.</p>
+      <button id="verifyButton" class="button">Verify Your Email</button>
+      <p id="message" style="display: none;"></p>
     </div>
     <div class="footer">
-      <p>&copy; 2025 The Shot. All rights reserved.</p>
-      <p><a href="https://theshot.app/privacy">Privacy Policy</a> | <a href="https://theshot.app/terms">Terms of Service</a></p>
+      <p>© 2025 The Shot. All rights reserved.</p>
+      <p><a href="https://theshot.app/privacy">Privacy Policy</a> | <a href="https://theshot.app/terms">Terms of
+          Service</a></p>
       <p>Questions? Contact us at <a href="mailto:support@theshot.app">support@theshot.app</a></p>
     </div>
   </div>
+  <!-- Use Firebase compatibility scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDZ2EKut_pSG_NuHGf2ODzpmpLnVJ-SSt4",
+      authDomain: "eauth-5e352.firebaseapp.com",
+      projectId: "eauth-5e352",
+      storageBucket: "eauth-5e352.appspot.com",
+      messagingSenderId: "1011019350206",
+      appId: "1:1011019350206:web:2befd08d3cabf786885eef"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // Get URL parameters
+    function getParameterByName(name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name);
+    }
+
+    const oobCode = getParameterByName('oobCode');
+    const mode = getParameterByName('mode');
+    const messageElement = document.getElementById('message');
+    const verifyButton = document.getElementById('verifyButton');
+
+    if (!oobCode || mode !== 'verifyEmail') {
+      messageElement.textContent = 'Invalid verification link.';
+      messageElement.classList.add('error');
+      messageElement.style.display = 'block';
+      verifyButton.style.display = 'none';
+    } else {
+      verifyButton.addEventListener('click', () => {
+        auth.applyActionCode(oobCode)
+          .then(() => {
+            messageElement.textContent = 'Email verified successfully! You can now log in.';
+            messageElement.classList.add('success');
+            messageElement.style.display = 'block';
+            verifyButton.style.display = 'none';
+            // Optionally redirect to login page
+            // window.location.href = 'https://eauth-5e352.web.app/login'; // Add your login page if needed
+          })
+          .catch((error) => {
+            messageElement.textContent = `Verification failed: ${error.message}`;
+            messageElement.classList.add('error');
+            messageElement.style.display = 'block';
+          });
+      });
+    }
+  </script>
 </body>
-</html>  </div>
-</body>
+
 </html>

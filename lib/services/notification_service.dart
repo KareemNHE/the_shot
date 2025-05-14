@@ -1,21 +1,23 @@
 //services/notification_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:the_shot2/models/notification_model.dart';
+import '../models/notification_model.dart';
 
 class NotificationService {
   static final _firestore = FirebaseFirestore.instance;
   static final _auth = FirebaseAuth.instance;
 
-  static Future<bool> _checkNotificationSettings(String recipientId, String type) async {
+  static Future<bool> _checkNotificationSettings(
+      String recipientId, String type) async {
     final doc = await _firestore.collection('users').doc(recipientId).get();
-    final settings = doc.data()?['notificationSettings'] as Map<String, dynamic>? ?? {
-      'likes': true,
-      'comments': true,
-      'follows': true,
-      'messages': true,
-    };
-    // Map notification type to settings key
+    final settings = doc.data()?['notificationSettings'] as Map<String, dynamic>? ??
+        {
+          'likes': true,
+          'comments': true,
+          'follows': true,
+          'messages': true,
+          'mentions': true,
+        };
     final settingsKey = type == 'like'
         ? 'likes'
         : type == 'comment'
@@ -24,6 +26,8 @@ class NotificationService {
         ? 'follows'
         : type == 'message'
         ? 'messages'
+        : type == 'mention'
+        ? 'mentions'
         : type;
     return settings[settingsKey] ?? true;
   }
@@ -40,10 +44,8 @@ class NotificationService {
     final currentUser = _auth.currentUser;
     if (currentUser == null || currentUser.uid == recipientId) return;
 
-    // Check if notification type is enabled
     if (!(await _checkNotificationSettings(recipientId, type))) return;
 
-    // Check if user is blocked
     final blockedDoc = await _firestore
         .collection('users')
         .doc(recipientId)
@@ -52,11 +54,17 @@ class NotificationService {
         .get();
     if (blockedDoc.exists) return;
 
-    final senderSnapshot = await _firestore.collection('users').doc(currentUser.uid).get();
+    final senderSnapshot =
+    await _firestore.collection('users').doc(currentUser.uid).get();
     final senderData = senderSnapshot.data();
 
     final notification = AppNotification(
-      id: _firestore.collection('users').doc(recipientId).collection('notifications').doc().id,
+      id: _firestore
+          .collection('users')
+          .doc(recipientId)
+          .collection('notifications')
+          .doc()
+          .id,
       type: type,
       fromUserId: currentUser.uid,
       postId: postId,
