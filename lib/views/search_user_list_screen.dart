@@ -1,7 +1,6 @@
 //views/search_user_list_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:the_shot2/models/search_model.dart';
 import 'package:the_shot2/viewmodels/search_viewmodel.dart';
 import 'package:the_shot2/views/user_profile_screen.dart';
 

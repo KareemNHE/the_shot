@@ -15,7 +15,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:provider/provider.dart';
-import 'package:the_shot2/services/api_service.dart';
 import 'package:the_shot2/viewmodels/camera_viewmodel.dart';
 import 'package:the_shot2/viewmodels/edit_profile_viewmodel.dart';
 import 'package:the_shot2/viewmodels/message_list_viewmodel.dart';
